@@ -102,9 +102,9 @@ def parse_cli_arguments() -> CliArguments:
         print("=" * 70)
         print("\nEnter ticker symbols separated by spaces.")
         print("Examples:")
-        print("  • Conservative: SPY TLT GLD")
-        print("  • Growth: SPY QQQ EEM")
-        print("  • Two-asset: SPY TLT")
+        print("  - Conservative: SPY TLT GLD")
+        print("  - Growth: SPY QQQ EEM")
+        print("  - Two-asset: SPY TLT")
         print("\n(Tickers must be available on Yahoo Finance)")
         print()
         
@@ -114,7 +114,7 @@ def parse_cli_arguments() -> CliArguments:
             raise SystemExit(1)
         
         tickers = raw.split()
-        print(f"\n✓ Selected {len(tickers)} asset(s): {', '.join(tickers)}")
+        print(f"\n* Selected {len(tickers)} asset(s): {', '.join(tickers)}")
 
     # Validate asset_types length if provided
     if asset_types is not None and len(asset_types) != len(tickers):

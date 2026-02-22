@@ -133,12 +133,12 @@ def main() -> None:
     print("\n ASSET STATISTICS (Annualized)")
     print("-" * 70)
     print("\nExpected Returns")
-    print("→ Average yearly return based on historical data")
+    print("-> Average yearly return based on historical data")
     print()
     print(annual_returns.to_string())
     
     print("\n\nVolatility")
-    print("→ Measure of return variability (higher = riskier)")
+    print("-> Measure of return variability (higher = riskier)")
     print()
     print(annual_volatility.to_string())
 
@@ -146,7 +146,7 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("CORRELATION ANALYSIS")
     print("-" * 70)
-    print("\n→ Correlation quantifies asset interdependence:")
+    print("\n-> Correlation quantifies asset interdependence:")
     print("  +1.0 = perfect positive correlation (assets move together)")
     print("   0.0 = no linear relationship")
     print("  -1.0 = perfect negative correlation (strong diversification)")
@@ -160,21 +160,21 @@ def main() -> None:
         print()
         if corr_val < -0.1:
             print(f"{t1} and {t2} show negative correlation ({corr_val:.3f})")
-            print("   → Diversification benefit: combining them reduces portfolio risk")
+            print("   -> Diversification benefit: combining them reduces portfolio risk")
         elif corr_val > 0.7:
             print(f"{t1} and {t2} are highly correlated ({corr_val:.3f})")
-            print("   → Limited diversification: they tend to move together")
+            print("   -> Limited diversification: they tend to move together")
         else:
             print(f"{t1} and {t2} show moderate correlation ({corr_val:.3f})")
-            print("   → Some diversification benefit available")
+            print("   -> Some diversification benefit available")
 
     # --- Risk-Adjusted Metrics ---
     print("\n" + "=" * 70)
-    print("📈 RISK-ADJUSTED METRICS")
+    print("  RISK-ADJUSTED METRICS")
     print("-" * 70)
     
     print("\nSharpe Ratio")
-    print("→ Excess return per unit of risk (higher = better)")
+    print("-> Excess return per unit of risk (higher = better)")
     print(f"  Risk-free rate: {config.risk_free_rate:.1%}")
     print()
     for ticker in dataset.get_tickers():
@@ -186,7 +186,7 @@ def main() -> None:
 
     var_level = 0.95
     print(f"\n\nValue at Risk (VaR) at {int(var_level * 100)}%")
-    print("→ Maximum expected daily loss in worst 5% of scenarios")
+    print("-> Maximum expected daily loss in worst 5% of scenarios")
     print("  (VaR does not provide info about losses beyond threshold)")
     print()
     for ticker in dataset.get_tickers():
@@ -200,11 +200,11 @@ def main() -> None:
 
     # --- Optimal Portfolios ---
     print("\n" + "=" * 70)
-    print("🎯 OPTIMAL PORTFOLIOS (Markowitz Optimization)")
+    print("  OPTIMAL PORTFOLIOS (Markowitz Optimization)")
     print("-" * 70)
 
     print("\n1. Minimum-Variance Portfolio")
-    print("   → Lowest possible risk portfolio on efficient frontier")
+    print("   -> Lowest possible risk portfolio on efficient frontier")
     print()
     for ticker, w in zip(dataset.get_tickers(), min_var_port.weights):
         if w > 0.001:  # Only show non-zero weights
@@ -215,7 +215,7 @@ def main() -> None:
     print(f"   Sharpe Ratio:    {min_var_sharpe:>6.4f}")
 
     print("\n\n2. Maximum-Sharpe Portfolio")
-    print("   → Best risk-adjusted return (tangency portfolio)")
+    print("   -> Best risk-adjusted return (tangency portfolio)")
     print()
     for ticker, w in zip(dataset.get_tickers(), max_sharpe_port.weights):
         if w > 0.001:
@@ -226,7 +226,7 @@ def main() -> None:
     print(f"   Sharpe Ratio:    {max_sharpe_ratio:>6.4f}")
 
     print("\n\n3. Equal-Weight Benchmark (1/n):")
-    print("   → Simple naive diversification strategy")
+    print("   -> Simple naive diversification strategy")
     print()
     for ticker, w in zip(dataset.get_tickers(), eq_port.weights):
         print(f"     {ticker}: {w:>6.2%}")
@@ -262,18 +262,18 @@ def main() -> None:
     # ========== Visualization ==========
     if not cli_args.disable_plots:
         print("\n" + "=" * 70)
-        print("📉 GENERATING CHARTS...")
+        print("  GENERATING CHARTS...")
         print("-" * 70)
         
         viz = VisualizationService(output_dir=config.figures_dir)
         
         # Correlation heatmap
         viz.plot_correlation_matrix(corr_matrix, filename="correlation_matrix.png")
-        print("  ✓ Correlation heatmap saved")
+        print("  * Correlation heatmap saved")
         
         # Price history
         viz.plot_price_history(cleaned_prices, filename="price_history.png")
-        print("  ✓ Price history chart saved")
+        print("  * Price history chart saved")
         
         # Efficient frontier
         assets_df = pd.DataFrame({
@@ -289,38 +289,11 @@ def main() -> None:
             max_sharpe_portfolio=max_sharpe_port,
             filename="efficient_frontier.png",
         )
-        print("  ✓ Efficient frontier chart saved")
-
-    # ========== Limitations Disclaimer  ==========
-    print("\n" + "=" * 70)
-    print("LIMITATIONS")
-    print("=" * 70)
-    print("""
-1. Methodological Constraints (Section 6.1):
-   • Historical returns ≠ future returns
-   • Model assumes stable correlations (often violated in crises)
-   • Normal distribution assumption may not hold (fat tails exist)
-
-2. Data and Implementation Constraints (Section 6.2):
-   • Fixed historical period may not reflect future market regimes
-   • No transaction costs, taxes, or liquidity constraints included
-   • Static optimization (single point in time, no rebalancing modeled)
-
-3. Technical Limitations (Section 6.3):
-   • No shrinkage methods for correlation stability
-   • No backtesting or out-of-sample validation
-   • Results sensitive to input parameter estimates
-
-→ These portfolios should be interpreted as analytical guidance,
-  not definitive investment recommendations.
-
-See Section 6 of the thesis for detailed discussion of limitations
-and future directions for development.
-""")
+        print("  * Efficient frontier chart saved")
 
     # ========== Final Summary ==========
     print("=" * 70)
-    print("✅ ANALYSIS COMPLETE")
+    print("  ANALYSIS COMPLETE")
     print("=" * 70)
     print(f"\nAll results saved to: {figures_path.absolute()}")
     if not cli_args.disable_plots:
