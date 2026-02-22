@@ -1,13 +1,12 @@
 """
 Data fetching service for historical market data.
 
-Implements data collection from Yahoo Finance (Section 5.1, 7.3).[file:2]
+Implements data collection from Yahoo Finance (Section 5.1, 7.3).
 Uses yfinance library as specified in the methodology.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -19,7 +18,7 @@ class YahooFinanceDataFetcher:
     Downloads historical price data from Yahoo Finance.
     
     Implements data collection step from Section 7.1 (General logic of empirical study)
-    using yfinance library (Section 5.1).[file:2]
+    using yfinance library (Section 5.1).
     """
 
     def download_prices(
@@ -33,7 +32,7 @@ class YahooFinanceDataFetcher:
         Download historical adjusted closing prices for given tickers.
         
         Uses adjusted close prices to reflect total return including dividends
-        and stock splits (Section 7.3).[file:2]
+        and stock splits (Section 7.3).
         
         :param tickers: List of ticker symbols (e.g. ['SPY', 'TLT'])
         :param start: Start date in format 'YYYY-MM-DD'
@@ -99,57 +98,3 @@ class YahooFinanceDataFetcher:
             raise RuntimeError(
                 f"Failed to download data from Yahoo Finance: {str(e)}"
             ) from e
-
-    def get_latest_price(self, ticker: str) -> float:
-        """
-        Get the most recent closing price for a ticker.
-        
-        Useful for current portfolio valuation (not used in historical analysis).
-        
-        :param ticker: Ticker symbol
-        :return: Latest adjusted close price
-        """
-        try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="1d")
-            
-            if hist.empty:
-                raise ValueError(f"No recent data available for {ticker}")
-            
-            return float(hist["Close"].iloc[-1])
-        
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to get latest price for {ticker}: {str(e)}"
-            ) from e
-
-    def get_ticker_info(self, ticker: str) -> dict:
-        """
-        Get metadata about a ticker (name, sector, etc.).
-        
-        Optional: Can be used to display asset information in reports.
-        
-        :param ticker: Ticker symbol
-        :return: Dictionary with ticker metadata
-        """
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            
-            return {
-                "ticker": ticker,
-                "name": info.get("longName", ticker),
-                "sector": info.get("sector", "Unknown"),
-                "industry": info.get("industry", "Unknown"),
-                "currency": info.get("currency", "USD"),
-            }
-        
-        except Exception as e:
-            # Return minimal info if lookup fails
-            return {
-                "ticker": ticker,
-                "name": ticker,
-                "sector": "Unknown",
-                "industry": "Unknown",
-                "currency": "USD",
-            }

@@ -28,7 +28,7 @@ class MetricsCalculator:
     Computes risk-adjusted performance metrics for portfolio analysis.
     
     Based on classical portfolio theory metrics discussed in Chapter 4
-    of the thesis.[file:2]
+    of the thesis.
     """
 
     def __init__(self, periods_per_year: int = 252) -> None:
@@ -57,7 +57,7 @@ class MetricsCalculator:
         risk_free_rate_annual: float,
     ) -> float:
         """
-        Compute annualized Sharpe ratio (Section 4.2, Formula 6).[file:2]
+        Compute annualized Sharpe ratio (Section 4.2, Formula 6).
         
         S = (E[R_p] - R_f) / σ_p
         
@@ -89,10 +89,10 @@ class MetricsCalculator:
         self,
         returns: pd.Series,
         level: float = 0.95,
-        method: Literal["historical", "parametric"] = "historical",
+        method: Literal["historical"] = "historical",
     ) -> float:
         """
-        Compute Value at Risk (VaR) at the given confidence level (Section 4.3).[file:2]
+        Compute Value at Risk (VaR) at the given confidence level (Section 4.3).
         
         VaR answers: "What is the worst loss we can expect with a given probability?"
         For example, a 95% VaR of 2% means there is only a 5% chance that 
@@ -100,7 +100,7 @@ class MetricsCalculator:
         
         :param returns: Periodic returns
         :param level: Confidence level (e.g. 0.95 for 95%)
-        :param method: 'historical' (empirical quantile) or 'parametric' (normal assumption)
+        :param method: 'historical' (empirical quantile)
         :return: VaR as positive number representing loss (e.g. 0.02 = 2%)
         """
         if method == "historical":
@@ -109,14 +109,6 @@ class MetricsCalculator:
             var_quantile = sorted_returns.quantile(1.0 - level)
             return float(-var_quantile)
         
-        elif method == "parametric":
-            # Assuming normal distribution: VaR = -(mu + z * sigma)
-            mu = returns.mean()
-            sigma = returns.std()
-            z = self._z_score(level)
-            var_value = -(mu + z * sigma)
-            return float(max(var_value, 0.0))
-        
         else:
             raise ValueError(f"Unsupported VaR method: {method}")
 
@@ -124,38 +116,10 @@ class MetricsCalculator:
         self,
         returns: pd.Series,
         level: float = 0.95,
-        method: Literal["historical", "parametric"] = "historical",
+        method: Literal["historical"] = "historical",
     ) -> VaRResult:
         """
         Convenience method to compute VaR and return structured result.
         """
         var_value = self.value_at_risk(returns, level=level, method=method)
         return VaRResult(level=level, var=var_value)
-
-    # ---------- Internal helpers ----------
-
-    @staticmethod
-    def _z_score(level: float) -> float:
-        """
-        Approximate z-score for the standard normal quantile.
-        
-        Used in parametric VaR calculation.
-        """
-        # Common values
-        if np.isclose(level, 0.90):
-            return 1.2816
-        if np.isclose(level, 0.95):
-            return 1.6449
-        if np.isclose(level, 0.99):
-            return 2.3263
-        
-        # Fallback: use scipy if available
-        try:
-            from scipy.stats import norm
-            return float(norm.ppf(level))
-        except ImportError:
-            # Simple approximation if scipy not available
-            if level > 0.5:
-                return float(np.sqrt(2) * np.sqrt(-np.log(2 * (1 - level))))
-            else:
-                return 0.0

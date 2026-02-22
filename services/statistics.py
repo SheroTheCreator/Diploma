@@ -18,7 +18,7 @@ class RiskReturnCalculator:
     """
     Computes risk and return statistics for portfolio analysis.
     
-    Based on Markowitz mean-variance framework (Section 2).[file:2]
+    Based on Markowitz mean-variance framework (Section 2).
     """
 
     def __init__(self, periods_per_year: int = 252) -> None:
@@ -32,7 +32,7 @@ class RiskReturnCalculator:
 
     def calculate_annualized_return(self, returns: pd.DataFrame) -> pd.Series:
         """
-        Calculate annualized expected returns (Formula 1, Section 2.2).[file:2]
+        Calculate annualized expected returns (Formula 1, Section 2.2).
         
         E[R_p] = Σ w_i * E[R_i]
         
@@ -48,7 +48,7 @@ class RiskReturnCalculator:
 
     def calculate_annualized_volatility(self, returns: pd.DataFrame) -> pd.Series:
         """
-        Calculate annualized volatility (standard deviation, Formula 5, Section 4.1).[file:2]
+        Calculate annualized volatility (standard deviation, Formula 5, Section 4.1).
         
         σ = sqrt( (1/(T-1)) * Σ(R_t - R̄)² )
         
@@ -63,7 +63,7 @@ class RiskReturnCalculator:
 
     def calculate_covariance_matrix(self, returns: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculate covariance matrix of returns (Formula 3, Section 2.3).[file:2]
+        Calculate covariance matrix of returns (Formula 3, Section 2.3).
         
         Cov(R_i, R_j) = E[(R_i - E[R_i])(R_j - E[R_j])]
         
@@ -77,7 +77,7 @@ class RiskReturnCalculator:
 
     def calculate_correlation_matrix(self, returns: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculate correlation matrix of returns (Section 4.4).[file:2]
+        Calculate correlation matrix of returns (Section 4.4).
         
         ρ_ij = Cov(R_i, R_j) / (σ_i × σ_j)
         
@@ -88,80 +88,3 @@ class RiskReturnCalculator:
         :return: Correlation matrix with values in [-1, 1]
         """
         return returns.corr()
-
-    def calculate_portfolio_return(
-        self,
-        weights: np.ndarray,
-        expected_returns: pd.Series,
-    ) -> float:
-        """
-        Calculate portfolio expected return (Formula 1, Section 2.2).[file:2]
-        
-        E[R_p] = Σ w_i * E[R_i]
-        
-        :param weights: Portfolio weights (must sum to 1)
-        :param expected_returns: Expected returns of individual assets
-        :return: Portfolio expected return
-        """
-        if len(weights) != len(expected_returns):
-            raise ValueError("Weights and returns must have same length")
-        
-        return float(np.dot(weights, expected_returns.values))
-
-    def calculate_portfolio_volatility(
-        self,
-        weights: np.ndarray,
-        cov_matrix: pd.DataFrame,
-    ) -> float:
-        """
-        Calculate portfolio volatility (Formulas 2, 4, Section 2.2-2.3).[file:2]
-        
-        σ_p² = Σ_i Σ_j w_i w_j Cov(R_i, R_j)  (Formula 2)
-        
-        Or in matrix form:
-        σ_p² = w^T Σ w  (Formula 4)
-        
-        Then: σ_p = sqrt(σ_p²)  (Formula 5)
-        
-        :param weights: Portfolio weights
-        :param cov_matrix: Covariance matrix of asset returns
-        :return: Portfolio standard deviation (volatility)
-        """
-        if len(weights) != len(cov_matrix):
-            raise ValueError("Weights and covariance matrix dimensions must match")
-        
-        # Formula 4: w^T Σ w
-        variance = float(weights.T @ cov_matrix.values @ weights)
-        
-        # Formula 5: σ = sqrt(variance)
-        return float(np.sqrt(variance))
-
-    def calculate_portfolio_statistics(
-        self,
-        weights: np.ndarray,
-        returns: pd.DataFrame,
-    ) -> dict[str, float]:
-        """
-        Calculate complete portfolio statistics (annualized).
-        
-        Convenience method combining return, volatility, and Sharpe calculation.
-        
-        :param weights: Portfolio weights
-        :param returns: DataFrame of periodic returns
-        :return: Dictionary with 'return', 'volatility', and other metrics
-        """
-        # Expected returns and covariance
-        annual_returns = self.calculate_annualized_return(returns)
-        cov_matrix = self.calculate_covariance_matrix(returns)
-        
-        # Annualize covariance
-        annual_cov = cov_matrix * self.periods_per_year
-        
-        # Portfolio metrics
-        port_return = self.calculate_portfolio_return(weights, annual_returns)
-        port_volatility = self.calculate_portfolio_volatility(weights, annual_cov)
-        
-        return {
-            "return": port_return,
-            "volatility": port_volatility,
-        }
