@@ -38,10 +38,16 @@ def main() -> None:
     args = parse_cli_arguments()
     config = get_config(use_auto_dates=args.auto_dates)
 
-    print("\n" + "=" * 60)
-    print(" PORTFOLIO OPTIMIZATION ANALYSIS")
-    print("=" * 60)
-    print(f" Period: {config.start_date} to {config.end_date}\n")
+    print("\n" + "=" * 70)
+    print("  PORTFOLIO OPTIMIZATION ANALYSIS")
+    print("=" * 70)
+    print(f"\n Analysis period: {config.start_date} to {config.end_date}")
+    if args.auto_dates:
+        print("   (Dynamic: last 10 years from today)")
+    else:
+        print("   (Fixed period for reproducibility)")
+    
+    print("\nProcessing data...\n")
     
     # 1. Fetch and Preprocess Data
     prices = download_prices(args.tickers, start=config.start_date, end=config.end_date)
@@ -64,41 +70,143 @@ def main() -> None:
     frontier = optimizer.efficient_frontier(n_points=20, constraints)
     eq_port = calculate_equal_weight_portfolio(len(args.tickers), annual_returns, annual_cov)
 
-    # 4. Display Results
-    print("--- Returns & Volatility ---")
-    for t in args.tickers:
-        print(f"  {t:>6}: Return {annual_returns[t]:>7.2%}, Volatility {annual_volatility[t]:>7.2%}")
+    # ========== DISPLAY RESULTS ==========
+    print("=" * 70)
+    print("  RESULTS")
+    print("=" * 70)
 
-    print("\n--- Correlation Matrix ---")
-    print(corr_matrix.round(3))
+    # --- Asset Statistics ---
+    print("\n ASSET STATISTICS (Annualized)")
+    print("-" * 70)
+    print("\nExpected Returns")
+    print("-> Average yearly return based on historical data")
+    print()
+    print(annual_returns.to_string())
+    
+    print("\n\nVolatility")
+    print("-> Measure of return variability (higher = riskier)")
+    print()
+    print(annual_volatility.to_string())
 
-    print("\n--- Risk-Adjusted Metrics ---")
+    # --- Correlation Analysis  ---
+    print("\n\n" + "=" * 70)
+    print("  CORRELATION ANALYSIS")
+    print("-" * 70)
+    print("\n-> Correlation quantifies asset interdependence:")
+    print("  +1.0 = perfect positive correlation (assets move together)")
+    print("   0.0 = no linear relationship")
+    print("  -1.0 = perfect negative correlation (strong diversification)")
+    print()
+    print(corr_matrix.to_string())
+    
+    # Interpret correlation for 2-asset case
+    if len(args.tickers) == 2:
+        t1, t2 = args.tickers
+        corr_val = corr_matrix.loc[t1, t2]
+        print()
+        if corr_val < -0.1:
+            print(f"{t1} and {t2} show negative correlation ({corr_val:.3f})")
+            print("   -> Diversification benefit: combining them reduces portfolio risk")
+        elif corr_val > 0.7:
+            print(f"{t1} and {t2} are highly correlated ({corr_val:.3f})")
+            print("   -> Limited diversification: they tend to move together")
+        else:
+            print(f"{t1} and {t2} show moderate correlation ({corr_val:.3f})")
+            print("   -> Some diversification benefit available")
+
+    # --- Risk-Adjusted Metrics ---
+    print("\n\n" + "=" * 70)
+    print("  RISK-ADJUSTED METRICS")
+    print("-" * 70)
+    
+    print("\nSharpe Ratio")
+    print("-> Excess return per unit of risk (higher = better)")
+    print(f"  Risk-free rate: {config.risk_free_rate:.1%}")
+    print()
     for t in args.tickers:
         sr = calculate_sharpe_ratio(returns[t], config.risk_free_rate, config.periods_per_year)
-        var = calculate_value_at_risk(returns[t], level=0.95)
-        print(f"  {t:>6}: Sharpe Ratio {sr:>6.2f}, 95% VaR {var:>6.2%}")
+        print(f"  {t}: {sr:.4f}")
 
-    print("\n--- Optimal Portfolios ---")
-    portfolios = [
-        ("Min-Variance", min_var_port),
-        ("Max-Sharpe", max_sharpe_port),
-        ("Equal-Weight", eq_port)
-    ]
-    
-    for name, port in portfolios:
-        sharpe = (port.expected_return - config.risk_free_rate) / port.volatility
-        weights_str = ", ".join(f"{t}: {w:.1%}" for t, w in zip(args.tickers, port.weights) if w > 0.01)
-        print(f"\n{name}:")
-        print(f"  Return:  {port.expected_return:.2%}")
-        print(f"  Risk:    {port.volatility:.2%}")
-        print(f"  Sharpe:  {sharpe:.2f}")
-        print(f"  Weights: {weights_str}")
+    var_level = 0.95
+    print(f"\n\nValue at Risk (VaR) at {int(var_level * 100)}%")
+    print("-> Maximum expected daily loss in worst 5% of scenarios")
+    print()
+    for t in args.tickers:
+        var = calculate_value_at_risk(returns[t], level=var_level)
+        print(f"  {t}: {var:.2%} (5% chance of losing more than this per day)")
+
+    # --- Optimal Portfolios ---
+    print("\n\n" + "=" * 70)
+    print("  OPTIMAL PORTFOLIOS (Markowitz Optimization)")
+    print("-" * 70)
+
+    print("\n1. Minimum-Variance Portfolio")
+    print("   -> Lowest possible risk portfolio on efficient frontier")
+    print()
+    for ticker, w in zip(args.tickers, min_var_port.weights):
+        if w > 0.001:  # Only show non-zero weights
+            print(f"     {ticker}: {w:>6.2%}")
+    print(f"\n   Expected Return: {min_var_port.expected_return:>6.2%}")
+    print(f"   Volatility:      {min_var_port.volatility:>6.2%}")
+    min_var_sharpe = (min_var_port.expected_return - config.risk_free_rate) / min_var_port.volatility
+    print(f"   Sharpe Ratio:    {min_var_sharpe:>6.4f}")
+
+    print("\n\n2. Maximum-Sharpe Portfolio")
+    print("   -> Best risk-adjusted return (tangency portfolio)")
+    print()
+    for ticker, w in zip(args.tickers, max_sharpe_port.weights):
+        if w > 0.001:
+            print(f"     {ticker}: {w:>6.2%}")
+    print(f"\n   Expected Return: {max_sharpe_port.expected_return:>6.2%}")
+    print(f"   Volatility:      {max_sharpe_port.volatility:>6.2%}")
+    max_sharpe_ratio = (max_sharpe_port.expected_return - config.risk_free_rate) / max_sharpe_port.volatility
+    print(f"   Sharpe Ratio:    {max_sharpe_ratio:>6.4f}")
+
+    print("\n\n3. Equal-Weight Benchmark (1/n):")
+    print("   -> Simple naive diversification strategy")
+    print()
+    for ticker, w in zip(args.tickers, eq_port.weights):
+        print(f"     {ticker}: {w:>6.2%}")
+    print(f"\n   Expected Return: {eq_port.expected_return:>6.2%}")
+    print(f"   Volatility:      {eq_port.volatility:>6.2%}")
+    eq_sharpe = (eq_port.expected_return - config.risk_free_rate) / eq_port.volatility
+    print(f"   Sharpe Ratio:    {eq_sharpe:>6.4f}")
+
+    # Comparison
+    print("\n\n COMPARISON:")
+    print("-" * 70)
+    comparison_data = {
+        "Portfolio": ["Min-Variance", "Max-Sharpe", "Equal-Weight"],
+        "Return": [
+            f"{min_var_port.expected_return:.2%}",
+            f"{max_sharpe_port.expected_return:.2%}",
+            f"{eq_port.expected_return:.2%}"
+        ],
+        "Risk": [
+            f"{min_var_port.volatility:.2%}",
+            f"{max_sharpe_port.volatility:.2%}",
+            f"{eq_port.volatility:.2%}"
+        ],
+        "Sharpe": [
+            f"{min_var_sharpe:.4f}",
+            f"{max_sharpe_ratio:.4f}",
+            f"{eq_sharpe:.4f}"
+        ]
+    }
+    comp_df = pd.DataFrame(comparison_data)
+    print(comp_df.to_string(index=False))
 
     # 5. Visualization
     if not args.disable_plots:
-        print("\nGenerating charts...")
+        print("\n\n" + "=" * 70)
+        print("  GENERATING CHARTS...")
+        print("-" * 70)
+        
         plot_correlation_matrix(corr_matrix, config.figures_dir)
+        print("  * Correlation heatmap saved")
+        
         plot_price_history(prices, config.figures_dir)
+        print("  * Price history chart saved")
         
         assets_df = pd.DataFrame({
             "Ticker": args.tickers, 
@@ -114,9 +222,17 @@ def main() -> None:
             equal_weight_portfolio=eq_port,
             output_dir=config.figures_dir
         )
-        print(f"Charts saved to '{config.figures_dir}' directory.")
-        
-    print("\nAnalysis complete.\n")
+        print("  * Efficient frontier chart saved")
+
+    # ========== Final Summary ==========
+    print("\n" + "=" * 70)
+    print("  ANALYSIS COMPLETE")
+    print("=" * 70)
+    print(f"\nAll results saved to the '{config.figures_dir}' directory.")
+    if not args.disable_plots:
+        print("\nTIP: Check the efficient frontier chart to visualize")
+        print("   the risk-return trade-off of different portfolios.")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
