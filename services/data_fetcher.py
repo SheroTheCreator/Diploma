@@ -1,8 +1,7 @@
 """
 Data fetching service for historical market data.
 
-Implements data collection from Yahoo Finance (Section 5.1, 7.3).
-Uses yfinance library as specified in the methodology.
+Uses yfinance library to download asset prices.
 """
 
 from __future__ import annotations
@@ -16,9 +15,6 @@ import yfinance as yf
 class YahooFinanceDataFetcher:
     """
     Downloads historical price data from Yahoo Finance.
-    
-    Implements data collection step from Section 7.1 (General logic of empirical study)
-    using yfinance library (Section 5.1).
     """
 
     def download_prices(
@@ -31,9 +27,6 @@ class YahooFinanceDataFetcher:
         """
         Download historical adjusted closing prices for given tickers.
         
-        Uses adjusted close prices to reflect total return including dividends
-        and stock splits (Section 7.3).
-        
         :param tickers: List of ticker symbols (e.g. ['SPY', 'TLT'])
         :param start: Start date in format 'YYYY-MM-DD'
         :param end: End date in format 'YYYY-MM-DD'
@@ -45,8 +38,6 @@ class YahooFinanceDataFetcher:
             raise ValueError("At least one ticker must be provided")
 
         try:
-            # Download data using yfinance
-            # auto_adjust=False to get explicit 'Adj Close' column
             data = yf.download(
                 tickers=tickers,
                 start=start,
@@ -83,7 +74,7 @@ class YahooFinanceDataFetcher:
                     else:
                         raise ValueError("No price column found in multi-ticker data")
                 else:
-                    # Single level columns (shouldn't happen with multiple tickers, but handle it)
+                    # Single level columns 
                     prices = data.copy()
 
             # Ensure column names are strings

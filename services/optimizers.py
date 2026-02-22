@@ -1,8 +1,7 @@
 """
 Portfolio optimization using Markowitz mean-variance framework.
 
-Implements the optimization problems from Section 2 (Markowitz model)
-and Section 7.5 (Implementation in Python).[file:2]
+Implements the optimization problems from the Markowitz model.
 """
 
 from __future__ import annotations
@@ -17,23 +16,14 @@ from scipy.optimize import minimize
 
 @dataclass
 class WeightConstraints:
-    """
-    Box constraints on portfolio weights.
-    
-    Reflects practical restrictions such as no short selling (min_weight=0)
-    and maximum position size limits (Section 2.1).[file:2]
-    """
+    """Box constraints on portfolio weights."""
     min_weight: float = 0.0
     max_weight: float = 1.0
 
 
 @dataclass
 class PortfolioResult:
-    """
-    Container for optimized portfolio characteristics.
-    
-    Stores weights, expected return (Formula 1), and volatility (Formula 5).[file:2]
-    """
+    """Container for optimized portfolio characteristics."""
     weights: np.ndarray
     expected_return: float
     volatility: float
@@ -41,12 +31,10 @@ class PortfolioResult:
 
 class MeanVarianceOptimizer:
     """
-    Mean-variance portfolio optimizer (Markowitz model, Section 2).[file:2]
+    Mean-variance portfolio optimizer (Markowitz model).
     
     Solves quadratic optimization problems to find optimal portfolio weights
     that balance expected return and risk (variance).
-    
-    Uses scipy.optimize SLSQP method as discussed in Section 5.3.[file:2]
     """
 
     def __init__(
@@ -54,12 +42,7 @@ class MeanVarianceOptimizer:
         expected_returns: pd.Series,
         cov_matrix: pd.DataFrame,
     ) -> None:
-        """
-        Initialize optimizer with annualized return and covariance estimates.
-        
-        :param expected_returns: Annualized expected returns (Formula 1)
-        :param cov_matrix: Annualized covariance matrix (Formula 3-4)
-        """
+        """Initialize optimizer with annualized return and covariance estimates."""
         if not isinstance(expected_returns, pd.Series):
             raise TypeError("expected_returns must be a pandas Series.")
         if not isinstance(cov_matrix, pd.DataFrame):
@@ -73,23 +56,12 @@ class MeanVarianceOptimizer:
     # ---------- Core helpers ----------
 
     def _portfolio_performance(self, weights: np.ndarray) -> Tuple[float, float]:
-        """
-        Calculate portfolio expected return and volatility.
-        
-        Uses Formulas 1 (expected return) and 4 (portfolio variance).[file:2]
-        
-        :return: (expected_return, volatility)
-        """
+        """Calculate portfolio expected return and volatility."""
         mu = self.expected_returns.values  # shape (n_assets,)
         cov = self.cov_matrix.values       # shape (n_assets, n_assets)
 
-        # Formula 1: E[R_p] = Σ w_i * E[R_i]
         port_return = float(np.dot(weights, mu))
-        
-        # Formula 4: σ_p² = w^T Σ w
         port_var = float(weights.T @ cov @ weights)
-        
-        # Formula 5: σ = sqrt(variance)
         port_vol = float(np.sqrt(port_var))
         
         return port_return, port_vol
@@ -99,11 +71,7 @@ class MeanVarianceOptimizer:
         return tuple((constraints.min_weight, constraints.max_weight) for _ in range(self.n_assets))
 
     def _weight_sum_constraint(self) -> dict:
-        """
-        Constraint enforcing sum of weights equal to 1.
-        
-        Standard constraint in portfolio optimization (Section 2.1).[file:2]
-        """
+        """Constraint enforcing sum of weights equal to 1."""
         return {"type": "eq", "fun": lambda w: np.sum(w) - 1.0}
 
     # ---------- Public optimization methods ----------
@@ -114,17 +82,9 @@ class MeanVarianceOptimizer:
         initial_weights: np.ndarray | None = None,
     ) -> PortfolioResult:
         """
-        Compute global minimum-variance portfolio (Section 2.4).[file:2]
-        
-        Solves:
-            min_w  w^T Σ w
-            s.t.   Σw_i = 1,  w_min ≤ w_i ≤ w_max
+        Compute global minimum-variance portfolio.
         
         This portfolio has the lowest possible risk on the efficient frontier.
-        
-        :param constraints: Box constraints on weights
-        :param initial_weights: Starting point for optimization
-        :return: PortfolioResult with optimal weights and characteristics
         """
         if initial_weights is None:
             initial_weights = np.repeat(1.0 / self.n_assets, self.n_assets)
@@ -132,7 +92,7 @@ class MeanVarianceOptimizer:
         cov = self.cov_matrix.values
 
         def objective(w: np.ndarray) -> float:
-            # Minimize portfolio variance (Formula 4)
+            # Minimize portfolio variance
             return float(w.T @ cov @ w)
 
         bounds = self._build_bounds(constraints)
@@ -160,18 +120,9 @@ class MeanVarianceOptimizer:
         initial_weights: np.ndarray | None = None,
     ) -> PortfolioResult:
         """
-        Compute maximum Sharpe ratio portfolio (Section 2.4, Formula 6).[file:2]
-        
-        Solves:
-            max_w  (w^T μ - R_f) / sqrt(w^T Σ w)
-            s.t.   Σw_i = 1,  w_min ≤ w_i ≤ w_max
+        Compute maximum Sharpe ratio portfolio.
         
         This portfolio achieves the best risk-adjusted return (tangency portfolio).
-        
-        :param risk_free_rate: Annual risk-free rate
-        :param constraints: Box constraints on weights
-        :param initial_weights: Starting point for optimization
-        :return: PortfolioResult with optimal weights and characteristics
         """
         if initial_weights is None:
             initial_weights = np.repeat(1.0 / self.n_assets, self.n_assets)
@@ -180,8 +131,6 @@ class MeanVarianceOptimizer:
         cov = self.cov_matrix.values
 
         def negative_sharpe(w: np.ndarray) -> float:
-            # Formula 6: S = (E[R_p] - R_f) / σ_p
-            # Minimize negative Sharpe = maximize Sharpe
             port_ret = float(np.dot(w, mu))
             port_var = float(w.T @ cov @ w)
             port_vol = float(np.sqrt(port_var))
@@ -216,27 +165,16 @@ class MeanVarianceOptimizer:
         constraints: WeightConstraints,
     ) -> List[PortfolioResult]:
         """
-        Compute efficient frontier (Section 2.4, Figure 1).[file:2]
+        Compute efficient frontier.
         
         Generates a set of portfolios with varying target returns,
         each minimizing risk for that return level.
-        
-        Solves for each target return μ_target:
-            min_w  w^T Σ w
-            s.t.   w^T μ = μ_target,  Σw_i = 1,  w_min ≤ w_i ≤ w_max
-        
-        :param n_points: Number of portfolios to compute along frontier
-        :param constraints: Box constraints on weights
-        :return: List of PortfolioResult objects forming the efficient frontier
         """
-        # Get return range
         min_var_port = self.min_variance_portfolio(constraints)
         min_ret = min_var_port.expected_return
         max_ret = self.expected_returns.max()
 
-        # Generate target returns
         target_returns = np.linspace(min_ret, max_ret, n_points)
-
         frontier_portfolios: List[PortfolioResult] = []
 
         for target_ret in target_returns:
@@ -254,11 +192,7 @@ class MeanVarianceOptimizer:
         target_return: float,
         constraints: WeightConstraints,
     ) -> PortfolioResult:
-        """
-        Find minimum-variance portfolio with specified target return.
-        
-        Helper method for efficient frontier computation.
-        """
+        """Find minimum-variance portfolio with specified target return."""
         initial_weights = np.repeat(1.0 / self.n_assets, self.n_assets)
         mu = self.expected_returns.values
         cov = self.cov_matrix.values
