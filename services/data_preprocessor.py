@@ -1,7 +1,6 @@
 """
 Data preprocessing service for portfolio analysis.
 
-Implements data cleaning and transformation (Section 7.3).
 Handles missing values and computes periodic returns.
 """
 
@@ -13,8 +12,6 @@ import pandas as pd
 class DataPreprocessor:
     """
     Preprocesses raw price data for portfolio analysis.
-    
-    Implements data preparation steps from Section 7.3 (Data sources and preprocessing).
     """
 
     def clean_prices(self, prices: pd.DataFrame) -> pd.DataFrame:
@@ -22,7 +19,7 @@ class DataPreprocessor:
         Clean price data by handling missing values.
         
         Uses forward-fill to handle missing data from holidays or trading halts,
-        then drops any remaining rows with all NaN values (Section 7.3).
+        then drops any remaining rows with all NaN values.
         
         :param prices: Raw price DataFrame from data fetcher
         :return: Cleaned price DataFrame
@@ -47,11 +44,7 @@ class DataPreprocessor:
         """
         Compute simple periodic returns from price series.
         
-        Simple return formula (used in Section 7.4):
-        r_t = (P_t - P_{t-1}) / P_{t-1} = P_t / P_{t-1} - 1
-        
-        This is the standard approach for portfolio analysis as it preserves
-        the property that portfolio returns are weighted averages of asset returns.
+        r_t = (P_t - P_{t-1}) / P_{t-1}
         
         :param prices: Clean price DataFrame
         :return: DataFrame of periodic returns

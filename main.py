@@ -5,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from models.market_data import MarketAsset, MarketDataSet
 from services.data_fetcher import YahooFinanceDataFetcher
 from services.data_preprocessor import DataPreprocessor
 from services.statistics import RiskReturnCalculator
@@ -18,13 +17,10 @@ from utils.config import ProjectConfig
 
 def calculate_equal_weight_portfolio(
     n_assets: int,
-    tickers: list[str],
     annual_returns: pd.Series,
     annual_cov: pd.DataFrame,
 ) -> PortfolioResult:
-    
-    # Calculate equal-weight (1/n) benchmark portfolio.
-
+    """Calculate equal-weight (1/n) benchmark portfolio."""
     weights = np.ones(n_assets) / n_assets
     port_return = float(np.dot(weights, annual_returns.values))
     port_var = float(weights.T @ annual_cov.values @ weights)
@@ -46,19 +42,11 @@ def main() -> None:
     
     # Parsing of command-line arguments
     cli_args = parse_cli_arguments()
+    tickers = cli_args.tickers
 
-    if len(cli_args.tickers) < 1:
+    if len(tickers) < 1:
         raise ValueError("At least one ticker must be provided.")
 
-    # Build asset objects
-    assets: list[MarketAsset] = []
-    for idx, ticker in enumerate(cli_args.tickers):
-        asset_type = None
-        if cli_args.asset_types is not None:
-            asset_type = cli_args.asset_types[idx]
-        assets.append(MarketAsset(ticker=ticker, asset_type=asset_type))
-
-    dataset = MarketDataSet(assets=assets)
     config = ProjectConfig(use_auto_dates=cli_args.auto_dates)
 
     # Show analysis period
@@ -76,7 +64,7 @@ def main() -> None:
     # Download and preprocess data from Yahoo API
     fetcher = YahooFinanceDataFetcher()
     prices = fetcher.download_prices(
-        tickers=dataset.get_tickers(),
+        tickers=tickers,
         start=config.start_date,
         end=config.end_date,
     )
@@ -84,8 +72,6 @@ def main() -> None:
     preprocessor = DataPreprocessor()
     cleaned_prices = preprocessor.clean_prices(prices)
     returns = preprocessor.compute_simple_returns(cleaned_prices)
-    dataset.set_prices(cleaned_prices)
-    dataset.set_returns(returns)
 
     # Compute descriptive statistics
     calculator = RiskReturnCalculator(periods_per_year=config.periods_per_year)
@@ -114,8 +100,7 @@ def main() -> None:
     
     # Equal-weight benchmark
     eq_port = calculate_equal_weight_portfolio(
-        len(dataset.get_tickers()),
-        dataset.get_tickers(),
+        len(tickers),
         annual_returns,
         annual_cov,
     )
@@ -154,8 +139,8 @@ def main() -> None:
     print(corr_matrix.to_string())
     
     # Interpret correlation for 2-asset case
-    if len(dataset.get_tickers()) == 2:
-        t1, t2 = dataset.get_tickers()
+    if len(tickers) == 2:
+        t1, t2 = tickers
         corr_val = corr_matrix.loc[t1, t2]
         print()
         if corr_val < -0.1:
@@ -177,7 +162,7 @@ def main() -> None:
     print("-> Excess return per unit of risk (higher = better)")
     print(f"  Risk-free rate: {config.risk_free_rate:.1%}")
     print()
-    for ticker in dataset.get_tickers():
+    for ticker in tickers:
         sr = metrics_calculator.sharpe_ratio(
             returns=returns[ticker],
             risk_free_rate_annual=config.risk_free_rate,
@@ -189,7 +174,7 @@ def main() -> None:
     print("-> Maximum expected daily loss in worst 5% of scenarios")
     print("  (VaR does not provide info about losses beyond threshold)")
     print()
-    for ticker in dataset.get_tickers():
+    for ticker in tickers:
         var_res = metrics_calculator.var_result(
             returns=returns[ticker],
             level=var_level,
@@ -206,7 +191,7 @@ def main() -> None:
     print("\n1. Minimum-Variance Portfolio")
     print("   -> Lowest possible risk portfolio on efficient frontier")
     print()
-    for ticker, w in zip(dataset.get_tickers(), min_var_port.weights):
+    for ticker, w in zip(tickers, min_var_port.weights):
         if w > 0.001:  # Only show non-zero weights
             print(f"     {ticker}: {w:>6.2%}")
     print(f"\n   Expected Return: {min_var_port.expected_return:>6.2%}")
@@ -217,7 +202,7 @@ def main() -> None:
     print("\n\n2. Maximum-Sharpe Portfolio")
     print("   -> Best risk-adjusted return (tangency portfolio)")
     print()
-    for ticker, w in zip(dataset.get_tickers(), max_sharpe_port.weights):
+    for ticker, w in zip(tickers, max_sharpe_port.weights):
         if w > 0.001:
             print(f"     {ticker}: {w:>6.2%}")
     print(f"\n   Expected Return: {max_sharpe_port.expected_return:>6.2%}")
@@ -228,7 +213,7 @@ def main() -> None:
     print("\n\n3. Equal-Weight Benchmark (1/n):")
     print("   -> Simple naive diversification strategy")
     print()
-    for ticker, w in zip(dataset.get_tickers(), eq_port.weights):
+    for ticker, w in zip(tickers, eq_port.weights):
         print(f"     {ticker}: {w:>6.2%}")
     print(f"\n   Expected Return: {eq_port.expected_return:>6.2%}")
     print(f"   Volatility:      {eq_port.volatility:>6.2%}")
@@ -277,7 +262,7 @@ def main() -> None:
         
         # Efficient frontier
         assets_df = pd.DataFrame({
-            "Ticker": dataset.get_tickers(),
+            "Ticker": tickers,
             "Return": annual_returns.values,
             "Volatility": annual_volatility.values,
         })
