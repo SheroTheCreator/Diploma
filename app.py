@@ -22,13 +22,13 @@ def calculate_equal_weight_portfolio(n_assets, annual_returns, annual_cov):
     return PortfolioResult(weights=weights, expected_return=port_return, volatility=float(np.sqrt(port_var)))
 
 # --- Page Configuration ---
-st.set_page_config(page_title="Portfolio Optimizer", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Portfolio Optimizer", layout="wide")
 
-st.title("📈 Portfolio Optimization Web App")
-st.markdown("Build an optimal portfolio based on the Markowitz Mean-Variance framework using real historical data.")
+st.title("Portfolio Optimization Tool")
+st.markdown("An empirical implementation of the Markowitz Mean-Variance framework using historical market data.")
 
 # --- Sidebar Inputs ---
-st.sidebar.header("⚙️ Parameters")
+st.sidebar.header("Parameters")
 tickers_input = st.sidebar.text_input("Tickers (space separated)", "AAPL MSFT GOOGL JPM")
 benchmark_input = st.sidebar.text_input("Benchmark", "SPY")
 max_weight = st.sidebar.slider("Max Allocation per Asset", 0.05, 1.0, 0.40, 0.05)
@@ -40,7 +40,7 @@ if not use_fixed:
 else:
     years = 10  # Placeholder, ignored if use_fixed is True
 
-if st.sidebar.button("Run Analysis", type="primary"):
+if st.sidebar.button("Execute Analysis", type="primary"):
     
     # Process Inputs
     tickers = [t.strip().upper() for t in tickers_input.split() if t.strip()]
@@ -52,10 +52,10 @@ if st.sidebar.button("Run Analysis", type="primary"):
         
     min_possible = 1.0 / len(tickers)
     if max_weight < min_possible:
-        st.error(f"Max weight ({max_weight}) is mathematically impossible for {len(tickers)} assets. It must be at least {min_possible:.2f}.")
+        st.error(f"Constraint error: Max weight ({max_weight}) is mathematically impossible for {len(tickers)} assets. It must be at least {min_possible:.2f}.")
         st.stop()
         
-    with st.spinner("Fetching market data and running optimization..."):
+    with st.spinner("Fetching market data and executing optimization algorithms..."):
         try:
             # 1. Fetch & Preprocess
             config = get_config(years=years, use_fixed=use_fixed)
@@ -90,18 +90,18 @@ if st.sidebar.button("Run Analysis", type="primary"):
             eq_port = calculate_equal_weight_portfolio(len(tickers), annual_returns, annual_cov)
 
             # --- UI Layout: Tabs ---
-            tab1, tab2, tab3 = st.tabs(["📊 Portfolio Results", "📈 Visualizations", "🔍 Raw Data"])
+            tab1, tab2, tab3 = st.tabs(["Portfolio Results", "Visualizations", "Raw Data"])
             
             with tab1:
                 st.subheader(f"Portfolio Performance vs Benchmark ({benchmark})")
                 st.caption(f"Analysis period: **{config.start_date}** to **{config.end_date}**")
                 
                 st.info("""
-                💡 **How to choose your portfolio:**
-                - 🛡️ **Min-Variance:** The safest possible combination. Choose this if you want minimal price swings.
-                - ⭐ **Max-Sharpe (Tangency):** The "sweet spot". It mathematically provides the most return for every unit of risk.
-                - ⚖️ **Equal-Weight (1/n):** A lazy split across all assets. Good for checking if complex math actually beats a simple strategy.
-                - 📈 **Benchmark:** The broader market. If your portfolio's Sharpe Ratio is lower than the benchmark, you might be better off buying the benchmark index instead!
+                **Portfolio Selection Guidelines:**
+                - **Global Minimum-Variance Portfolio:** The portfolio situated at the leftmost point of the efficient frontier, mathematically minimizing expected volatility regardless of expected return.
+                - **Maximum Sharpe Ratio (Tangency) Portfolio:** The portfolio maximizing the risk-adjusted return, representing the optimal allocation of risky assets according to Modern Portfolio Theory.
+                - **Equal-Weight (1/n) Portfolio:** A naive diversification benchmark allocating capital equally across all assets, serving as a baseline to evaluate the value added by convex optimization.
+                - **Market Benchmark:** The baseline market index (e.g., S&P 500) used to evaluate the relative performance of the constructed portfolios.
                 """)
                 
                 # Comparison Dataframe
@@ -128,7 +128,7 @@ if st.sidebar.button("Run Analysis", type="primary"):
                 st.dataframe(df_comp, use_container_width=True)
                 
                 st.subheader("Asset Allocation (Weights)")
-                st.markdown("This tells you exactly what percentage of your money should go into each stock.")
+                st.markdown("Optimal capital allocation percentages across the selected assets.")
                 weights_df = pd.DataFrame({
                     "Min-Variance": min_var_port.weights,
                     "Max-Sharpe": max_sharpe_port.weights,
@@ -143,8 +143,8 @@ if st.sidebar.button("Run Analysis", type="primary"):
 
             with tab2:
                 st.subheader("Efficient Frontier")
-                st.markdown("Visualizing the optimal risk-return trade-off. Any portfolio below the blue line is sub-optimal.")
-                st.info("💡 **Hint:** Look at the Red Diamond (Benchmark). If your Golden Star (Max-Sharpe) is higher and further to the left, your selected assets easily beat the market!")
+                st.markdown("Visual representation of Pareto-optimal risk-return combinations.")
+                st.info("**Interpretation Note:** The efficient frontier represents optimal portfolios. Portfolios positioned above and to the left of the benchmark exhibit strictly superior risk-adjusted performance compared to the market index.")
                 
                 assets_df = pd.DataFrame({"Ticker": tickers, "Return": annual_returns.values, "Volatility": annual_volatility.values})
                 bench_stat = {"Ticker": benchmark, "Return": bench_ann_ret, "Volatility": bench_ann_vol}
@@ -165,15 +165,15 @@ if st.sidebar.button("Run Analysis", type="primary"):
                 
                 with col1:
                     st.subheader("Correlation Matrix")
-                    st.markdown("Measures how assets move together.")
-                    st.info("💡 **Hint:** Values close to **-1.0** or **0.0** are great. It means when one asset drops, another stays flat or goes up (saving your portfolio). Values near **+1.0** mean they crash together.")
+                    st.markdown("Quantification of linear interdependence between asset returns.")
+                    st.info("**Interpretation Note:** Correlation coefficients approaching -1.0 or 0.0 indicate strong diversification benefits (assets move independently or inversely). Values approaching +1.0 indicate high positive correlation, diminishing the effectiveness of diversification.")
                     fig_corr = plot_correlation_matrix(corr_matrix, save=False)
                     st.pyplot(fig_corr)
                     plt.close(fig_corr)
                     
                 with col2:
                     st.subheader("Annualized Asset Metrics")
-                    st.markdown("Individual risk and return profiles for the selected period.")
+                    st.markdown("Individual risk and return profiles estimated from the historical period.")
                     stats_df = pd.DataFrame({
                         "Expected Return": annual_returns,
                         "Volatility": annual_volatility
@@ -181,13 +181,13 @@ if st.sidebar.button("Run Analysis", type="primary"):
                     st.dataframe(stats_df.style.format("{:.2%}"), use_container_width=True)
                     
                     st.subheader("Value at Risk (95%)")
-                    st.markdown("The maximum expected daily loss in the worst 5% of scenarios.")
-                    st.info("💡 **Hint:** If VaR is 2.50%, it means there's only a 5% chance your stock will drop more than 2.5% in a single day.")
+                    st.markdown("Estimation of maximum expected loss under normal market conditions.")
+                    st.info("**Interpretation Note:** A 95% Historical Value at Risk (VaR) of 2.50% implies that, based on the historical distribution, there is a 5% probability that the daily portfolio loss will exceed 2.50%.")
                     var_data = {t: f"{calculate_value_at_risk(port_returns[t], 0.95):.2%}" for t in tickers}
                     st.dataframe(pd.Series(var_data, name="95% VaR"), use_container_width=True)
 
         except Exception as e:
             st.error(f"An error occurred during analysis: {str(e)}")
-            st.info("Check if all ticker symbols are valid and publicly traded.")
+            st.info("Ensure all ticker symbols are valid and historical data is available for the selected period.")
 else:
-    st.info("👈 Enter your parameters in the sidebar and click **Run Analysis** to build portfolios.")
+    st.info("Please enter the parameters in the sidebar and execute the analysis to generate portfolio weights.")
