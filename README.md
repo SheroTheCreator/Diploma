@@ -18,9 +18,30 @@ The project supports **two interfaces**:
 - **Benchmark Comparison:** Automatically fetches a market index (e.g., S&P 500) and compares your optimal portfolios against it.
 - **Data Visualization:** Generates correlation heatmaps, price history charts, and the Efficient Frontier plot.
 
-## Installation
+## 🚀 Quick Start (Easiest Way to Run)
 
-1. Clone the repository:
+You don't need to manually install dependencies or type commands if you use the provided launch scripts.
+
+**On Windows:**
+1. Simply double-click the **`run.bat`** file.
+2. It will automatically set up Python, install everything needed, and open the app in your browser!
+
+**On Mac / Linux:**
+1. Open your terminal in the project folder.
+2. Run the bash script:
+   ```bash
+   bash run.sh
+   ```
+
+*Note: The first launch might take a minute as it downloads the required libraries.*
+
+---
+
+## Manual Installation & Usage
+
+If you prefer to run things manually or use the Command Line Interface (CLI):
+
+1. Clone the repository and navigate to the folder:
    ```bash
    git clone https://github.com/SheroTheCreator/Diploma.git
    cd Diploma
@@ -30,38 +51,24 @@ The project supports **two interfaces**:
    pip install -r requirements.txt
    ```
 
-## Running the Web App (Recommended)
-
-This is the easiest and most visual way to use the tool. Run the following command and the app will open automatically in your browser:
-
+### Running the Web App Manually
 ```bash
 streamlit run app.py
 ```
 
-The sidebar lets you:
-- Enter ticker symbols (space-separated)
-- Set a custom benchmark (e.g., `SPY`, `QQQ`)
-- Adjust the maximum weight per asset with a slider
-- Toggle between fixed and dynamic (last 10 years) date ranges
+### Running from Command Line (CLI)
 
-Results are shown across three tabs:
-- **Portfolio Results** — comparison table and allocation weights.
-- **Visualizations** — interactive Efficient Frontier and Price History charts.
-- **Raw Data** — Correlation matrix, individual asset metrics, and VaR.
-
-## Running from Command Line
-
-### Basic Usage
+**Basic Usage:**
 ```bash
 python main.py --tickers AAPL MSFT GOOGL JPM
 ```
 
-### Advanced Usage (Constraints and Benchmark)
+**Advanced Usage (Constraints and Benchmark):**
 ```bash
 python main.py --tickers AAPL MSFT GOOGL JPM --max-weight 0.4 --benchmark SPY
 ```
 
-### Available CLI Arguments
+**Available CLI Arguments:**
 - `--tickers` : List of asset tickers (e.g., AAPL MSFT). If omitted, the program will prompt you interactively.
 - `--disable-plots` : Disables graphical output.
 - `--auto-dates` : Uses a dynamic date range (last 10 years from today).
@@ -74,6 +81,8 @@ python main.py --tickers AAPL MSFT GOOGL JPM --max-weight 0.4 --benchmark SPY
 Diploma/
 ├── app.py              # Streamlit Web UI
 ├── main.py             # CLI entry point
+├── run.bat             # Auto-launcher for Windows
+├── run.sh              # Auto-launcher for Mac/Linux
 ├── requirements.txt    # Python dependencies
 ├── utils/
 │   ├── cli.py          # CLI argument parser
