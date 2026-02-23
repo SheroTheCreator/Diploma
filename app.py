@@ -135,9 +135,11 @@ if st.sidebar.button("Execute Analysis", type="primary"):
                     "Equal-Weight": eq_port.weights
                 }, index=tickers)
                 
-                # Highlight the max values in the columns
+                # Highlight the max values in the columns with explicit high-contrast colors
                 st.dataframe(
-                    weights_df.style.format("{:.2%}").highlight_max(axis=0, color="lightgreen"),
+                    weights_df.style.format("{:.2%}").highlight_max(
+                        axis=0, props="background-color: #2e7d32; color: white; font-weight: bold;"
+                    ),
                     use_container_width=True
                 )
 
