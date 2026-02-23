@@ -12,7 +12,10 @@ from services.statistics import (
 )
 from services.risk_metrics import calculate_sharpe_ratio, calculate_value_at_risk
 from services.optimizers import MeanVarianceOptimizer, WeightConstraints, PortfolioResult
-from services.visualization import plot_correlation_matrix, plot_efficient_frontier, plot_price_history
+from services.visualization import (
+    plot_correlation_matrix, plot_efficient_frontier, 
+    plot_price_history, plot_cumulative_performance
+)
 
 
 def calculate_equal_weight_portfolio(n_assets, annual_returns, annual_cov):
@@ -88,6 +91,14 @@ if st.sidebar.button("Execute Analysis", type="primary"):
             max_sharpe_port = optimizer.max_sharpe_portfolio(config.risk_free_rate, constraints)
             frontier = optimizer.efficient_frontier(n_points=20, constraints=constraints)
             eq_port = calculate_equal_weight_portfolio(len(tickers), annual_returns, annual_cov)
+            
+            # Calculate daily returns for cumulative performance backtest
+            daily_returns_dict = {
+                "Max-Sharpe (Optimal)": port_returns.dot(max_sharpe_port.weights),
+                "Min-Variance": port_returns.dot(min_var_port.weights),
+                "Equal-Weight (Baseline)": port_returns.dot(eq_port.weights),
+                f"Benchmark ({benchmark})": bench_returns
+            }
 
             # --- UI Layout: Tabs ---
             tab1, tab2, tab3 = st.tabs(["Portfolio Results", "Visualizations", "Raw Data"])
@@ -144,6 +155,14 @@ if st.sidebar.button("Execute Analysis", type="primary"):
                 )
 
             with tab2:
+                st.subheader("Cumulative Performance (In-Sample Backtest)")
+                st.markdown("Historical growth of a 100-unit initial investment across the computed strategies. This explicitly demonstrates the **added value** of the Mean-Variance optimization versus a naive Equal-Weight baseline.")
+                st.info("**Interpretation Note:** Outperformance of the Max-Sharpe line relative to the Equal-Weight line empirically validates the utility of the mathematical optimization algorithm over simple, naive diversification.")
+                
+                fig_cp = plot_cumulative_performance(daily_returns_dict, save=False)
+                st.pyplot(fig_cp)
+                plt.close(fig_cp)
+                
                 st.subheader("Efficient Frontier")
                 st.markdown("Visual representation of Pareto-optimal risk-return combinations.")
                 st.info("**Interpretation Note:** The efficient frontier represents optimal portfolios. Portfolios positioned above and to the left of the benchmark exhibit strictly superior risk-adjusted performance compared to the market index.")
