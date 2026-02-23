@@ -1,10 +1,6 @@
 # Portfolio Optimization Tool
 
-An empirical implementation of the Markowitz Mean-Variance framework. This tool downloads historical market data, calculates risk/return statistics, and computes optimal portfolio weights using convex optimization.
-
-The project supports **two interfaces**:
-- **Web App** (`app.py`) — an interactive browser-based UI powered by Streamlit.
-- **CLI** (`main.py`) — a classic command-line interface for terminal usage.
+An empirical implementation of the Markowitz Mean-Variance framework. This tool downloads historical market data, calculates risk/return statistics, and computes optimal portfolio weights using convex optimization, wrapped in a user-friendly Streamlit web interface.
 
 ## Features
 
@@ -39,7 +35,7 @@ You don't need to manually install dependencies or type commands if you use the 
 
 ## Manual Installation & Usage
 
-If you prefer to run things manually or use the Command Line Interface (CLI):
+If you prefer to run things manually:
 
 1. Clone the repository and navigate to the folder:
    ```bash
@@ -50,42 +46,20 @@ If you prefer to run things manually or use the Command Line Interface (CLI):
    ```bash
    pip install -r requirements.txt
    ```
-
-### Running the Web App Manually
-```bash
-streamlit run app.py
-```
-
-### Running from Command Line (CLI)
-
-**Basic Usage:**
-```bash
-python main.py --tickers AAPL MSFT GOOGL JPM
-```
-
-**Advanced Usage (Constraints and Benchmark):**
-```bash
-python main.py --tickers AAPL MSFT GOOGL JPM --max-weight 0.4 --benchmark SPY
-```
-
-**Available CLI Arguments:**
-- `--tickers` : List of asset tickers (e.g., AAPL MSFT). If omitted, the program will prompt you interactively.
-- `--disable-plots` : Disables graphical output.
-- `--auto-dates` : Uses a dynamic date range (last 10 years from today).
-- `--max-weight` : Maximum allocation per asset (e.g., `0.35` for 35%). Default is `1.0`.
-- `--benchmark` : Market benchmark ticker. Default is `SPY`.
+3. Run the Streamlit web application:
+   ```bash
+   streamlit run app.py
+   ```
 
 ## Project Structure
 
 ```
 Diploma/
-├── app.py              # Streamlit Web UI
-├── main.py             # CLI entry point
+├── app.py              # Streamlit Web Application (Entry point)
 ├── run.bat             # Auto-launcher for Windows
 ├── run.sh              # Auto-launcher for Mac/Linux
 ├── requirements.txt    # Python dependencies
 ├── utils/
-│   ├── cli.py          # CLI argument parser
 │   └── config.py       # Global config (dates, risk-free rate)
 └── services/
     ├── data_fetcher.py      # Downloads data via yfinance
@@ -98,11 +72,7 @@ Diploma/
 
 ## Output
 
-The analysis produces:
-1. Asset Statistics (Annualized Expected Return, Volatility).
-2. Correlation Matrix with diversification interpretation.
-3. Risk-Adjusted Metrics (Sharpe Ratio, 95% Historical VaR) vs benchmark.
-4. Optimal Portfolio Weights (Min-Variance, Max-Sharpe, Equal-Weight).
-5. Summary comparison table including the market benchmark.
-
-In CLI mode, charts are saved to the `figures/` directory.
+The application interface presents:
+1. **Portfolio Results:** A summary comparison table comparing optimal portfolios against the market benchmark, along with exact capital allocation weights.
+2. **Visualizations:** The Efficient Frontier plot visualizing Pareto-optimal risk-return combinations, and historical price charts.
+3. **Raw Data:** The asset Correlation Matrix and individual Risk-Adjusted Metrics (Sharpe Ratio, 95% Historical VaR).
