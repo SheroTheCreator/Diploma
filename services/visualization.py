@@ -21,24 +21,27 @@ def _setup_plot(figsize: tuple[int, int] = (10, 6)) -> None:
 def plot_correlation_matrix(
     corr_matrix: pd.DataFrame, 
     output_dir: str = "figures", 
-    filename: str = "correlation_matrix.png"
-) -> None:
+    filename: str = "correlation_matrix.png",
+    save: bool = True
+) -> plt.Figure:
     """Plot correlation matrix as a heatmap."""
     _setup_plot(figsize=(8, 6))
-    plt.figure()
+    fig, ax = plt.subplots()
     
     sns.heatmap(
         corr_matrix, annot=True, fmt=".3f", cmap="coolwarm", center=0,
-        square=True, linewidths=1, cbar_kws={"label": "Correlation"}, vmin=-1, vmax=1
+        square=True, linewidths=1, cbar_kws={"label": "Correlation"}, vmin=-1, vmax=1, ax=ax
     )
     
-    plt.title("Asset Correlation Matrix", fontsize=14, fontweight="bold", pad=15)
+    ax.set_title("Asset Correlation Matrix", fontsize=14, fontweight="bold", pad=15)
     plt.tight_layout()
     
-    out_path = Path(output_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-    plt.savefig(out_path / filename, dpi=150, bbox_inches="tight")
-    plt.close()
+    if save:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path / filename, dpi=150, bbox_inches="tight")
+        
+    return fig
 
 
 def plot_efficient_frontier(
@@ -50,7 +53,8 @@ def plot_efficient_frontier(
     benchmark_stat: dict | None = None,
     output_dir: str = "figures",
     filename: str = "efficient_frontier.png",
-) -> None:
+    save: bool = True
+) -> plt.Figure:
     """Plot efficient frontier with optimal portfolios, individual assets, and benchmark."""
     _setup_plot(figsize=(10, 7))
     fig, ax = plt.subplots()
@@ -102,17 +106,20 @@ def plot_efficient_frontier(
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    out_path = Path(output_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-    plt.savefig(out_path / filename, dpi=150, bbox_inches="tight")
-    plt.close()
+    if save:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path / filename, dpi=150, bbox_inches="tight")
+        
+    return fig
 
 
 def plot_price_history(
     prices: pd.DataFrame, 
     output_dir: str = "figures", 
-    filename: str = "price_history.png"
-) -> None:
+    filename: str = "price_history.png",
+    save: bool = True
+) -> plt.Figure:
     """Plot historical price time series."""
     _setup_plot(figsize=(12, 6))
     fig, ax = plt.subplots()
@@ -128,7 +135,9 @@ def plot_price_history(
     plt.xticks(rotation=45)
     
     plt.tight_layout()
-    out_path = Path(output_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-    plt.savefig(out_path / filename, dpi=150, bbox_inches="tight")
-    plt.close()
+    if save:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path / filename, dpi=150, bbox_inches="tight")
+        
+    return fig
