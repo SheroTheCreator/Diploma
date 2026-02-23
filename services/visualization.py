@@ -47,10 +47,11 @@ def plot_efficient_frontier(
     min_variance_portfolio: PortfolioResult | None = None,
     max_sharpe_portfolio: PortfolioResult | None = None,
     equal_weight_portfolio: PortfolioResult | None = None,
+    benchmark_stat: dict | None = None,
     output_dir: str = "figures",
     filename: str = "efficient_frontier.png",
 ) -> None:
-    """Plot efficient frontier with optimal portfolios and individual assets."""
+    """Plot efficient frontier with optimal portfolios, individual assets, and benchmark."""
     _setup_plot(figsize=(10, 7))
     fig, ax = plt.subplots()
 
@@ -84,6 +85,14 @@ def plot_efficient_frontier(
         ax.scatter(
             equal_weight_portfolio.volatility, equal_weight_portfolio.expected_return, 
             marker="^", s=150, color="orange", edgecolors="black", label="Equal-Weight", zorder=4
+        )
+
+    # Benchmark portfolio
+    if benchmark_stat:
+        ax.scatter(
+            benchmark_stat["Volatility"], benchmark_stat["Return"], 
+            marker="D", s=150, color="red", edgecolors="black", 
+            label=f"Benchmark ({benchmark_stat['Ticker']})", zorder=6
         )
 
     ax.set_xlabel("Annualized Volatility (Risk)", fontweight="bold")

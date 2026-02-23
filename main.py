@@ -42,28 +42,45 @@ def main() -> None:
     print("  PORTFOLIO OPTIMIZATION ANALYSIS")
     print("=" * 70)
     print(f"\n Analysis period: {config.start_date} to {config.end_date}")
+    
     if args.auto_dates:
         print("   (Dynamic: last 10 years from today)")
     else:
         print("   (Fixed period for reproducibility)")
+        
+    if args.max_weight < 1.0:
+        print(f"   (Constraints: max weight per asset = {args.max_weight:.1%})")
+        
+    print(f"   (Benchmark: {args.benchmark})")
     
     print("\nProcessing data...\n")
     
-    # 1. Fetch and Preprocess Data
-    prices = download_prices(args.tickers, start=config.start_date, end=config.end_date)
+    # 1. Fetch and Preprocess Data (Including Benchmark)
+    fetch_tickers = list(set(args.tickers + [args.benchmark]))
+    prices = download_prices(fetch_tickers, start=config.start_date, end=config.end_date)
     prices = clean_prices(prices)
     returns = compute_simple_returns(prices)
 
+    # Split returns into portfolio assets and benchmark
+    port_returns = returns[args.tickers]
+    bench_returns = returns[args.benchmark]
+
     # 2. Descriptive Statistics
-    annual_returns = calculate_annualized_return(returns, config.periods_per_year)
-    annual_volatility = calculate_annualized_volatility(returns, config.periods_per_year)
-    cov_matrix = calculate_covariance_matrix(returns)
-    corr_matrix = calculate_correlation_matrix(returns)
+    annual_returns = calculate_annualized_return(port_returns, config.periods_per_year)
+    annual_volatility = calculate_annualized_volatility(port_returns, config.periods_per_year)
+    cov_matrix = calculate_covariance_matrix(port_returns)
+    corr_matrix = calculate_correlation_matrix(port_returns)
+
+    # Benchmark statistics
+    bench_ann_ret = bench_returns.mean() * config.periods_per_year
+    bench_ann_vol = bench_returns.std() * np.sqrt(config.periods_per_year)
+    bench_sharpe = calculate_sharpe_ratio(bench_returns, config.risk_free_rate, config.periods_per_year)
+    bench_var = calculate_value_at_risk(bench_returns, level=0.95)
 
     # 3. Portfolio Optimization
     annual_cov = cov_matrix * config.periods_per_year
     optimizer = MeanVarianceOptimizer(expected_returns=annual_returns, cov_matrix=annual_cov)
-    constraints = WeightConstraints(min_weight=0.0, max_weight=1.0)
+    constraints = WeightConstraints(min_weight=0.0, max_weight=args.max_weight)
 
     min_var_port = optimizer.min_variance_portfolio(constraints)
     max_sharpe_port = optimizer.max_sharpe_portfolio(config.risk_free_rate, constraints)
@@ -78,12 +95,12 @@ def main() -> None:
     # --- Asset Statistics ---
     print("\n ASSET STATISTICS (Annualized)")
     print("-" * 70)
-    print("\nExpected Returns")
+    print(f"\nExpected Returns (Benchmark {args.benchmark}: {bench_ann_ret:.2%})")
     print("-> Average yearly return based on historical data")
     print()
     print(annual_returns.to_string())
     
-    print("\n\nVolatility")
+    print(f"\n\nVolatility (Benchmark {args.benchmark}: {bench_ann_vol:.2%})")
     print("-> Measure of return variability (higher = riskier)")
     print()
     print(annual_volatility.to_string())
@@ -123,17 +140,19 @@ def main() -> None:
     print("-> Excess return per unit of risk (higher = better)")
     print(f"  Risk-free rate: {config.risk_free_rate:.1%}")
     print()
+    print(f"  [Benchmark] {args.benchmark}: {bench_sharpe:.4f}\n")
     for t in args.tickers:
-        sr = calculate_sharpe_ratio(returns[t], config.risk_free_rate, config.periods_per_year)
+        sr = calculate_sharpe_ratio(port_returns[t], config.risk_free_rate, config.periods_per_year)
         print(f"  {t}: {sr:.4f}")
 
     var_level = 0.95
     print(f"\n\nValue at Risk (VaR) at {int(var_level * 100)}%")
     print("-> Maximum expected daily loss in worst 5% of scenarios")
     print()
+    print(f"  [Benchmark] {args.benchmark}: {bench_var:.2%} (5% chance of losing more than this per day)\n")
     for t in args.tickers:
-        var = calculate_value_at_risk(returns[t], level=var_level)
-        print(f"  {t}: {var:.2%} (5% chance of losing more than this per day)")
+        var = calculate_value_at_risk(port_returns[t], level=var_level)
+        print(f"  {t}: {var:.2%}")
 
     # --- Optimal Portfolios ---
     print("\n\n" + "=" * 70)
@@ -176,21 +195,24 @@ def main() -> None:
     print("\n\n COMPARISON:")
     print("-" * 70)
     comparison_data = {
-        "Portfolio": ["Min-Variance", "Max-Sharpe", "Equal-Weight"],
+        "Portfolio": ["Min-Variance", "Max-Sharpe", "Equal-Weight", f"Benchmark ({args.benchmark})"],
         "Return": [
             f"{min_var_port.expected_return:.2%}",
             f"{max_sharpe_port.expected_return:.2%}",
-            f"{eq_port.expected_return:.2%}"
+            f"{eq_port.expected_return:.2%}",
+            f"{bench_ann_ret:.2%}"
         ],
         "Risk": [
             f"{min_var_port.volatility:.2%}",
             f"{max_sharpe_port.volatility:.2%}",
-            f"{eq_port.volatility:.2%}"
+            f"{eq_port.volatility:.2%}",
+            f"{bench_ann_vol:.2%}"
         ],
         "Sharpe": [
             f"{min_var_sharpe:.4f}",
             f"{max_sharpe_ratio:.4f}",
-            f"{eq_sharpe:.4f}"
+            f"{eq_sharpe:.4f}",
+            f"{bench_sharpe:.4f}"
         ]
     }
     comp_df = pd.DataFrame(comparison_data)
@@ -220,6 +242,7 @@ def main() -> None:
             min_variance_portfolio=min_var_port,
             max_sharpe_portfolio=max_sharpe_port,
             equal_weight_portfolio=eq_port,
+            benchmark_stat={"Ticker": args.benchmark, "Return": bench_ann_ret, "Volatility": bench_ann_vol},
             output_dir=config.figures_dir
         )
         print("  * Efficient frontier chart saved")
@@ -231,7 +254,7 @@ def main() -> None:
     print(f"\nAll results saved to the '{config.figures_dir}' directory.")
     if not args.disable_plots:
         print("\nTIP: Check the efficient frontier chart to visualize")
-        print("   the risk-return trade-off of different portfolios.")
+        print("   the risk-return trade-off of different portfolios vs the Benchmark.")
     print("=" * 70 + "\n")
 
 
