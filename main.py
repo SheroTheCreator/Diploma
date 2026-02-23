@@ -36,7 +36,7 @@ def calculate_equal_weight_portfolio(
 def main() -> None:
     """Execute main portfolio analysis workflow."""
     args = parse_cli_arguments()
-    config = get_config(use_auto_dates=args.auto_dates)
+    config = get_config(years=10, use_fixed=not args.auto_dates)
 
     print("\n" + "=" * 70)
     print("  PORTFOLIO OPTIMIZATION ANALYSIS")

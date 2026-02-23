@@ -16,12 +16,12 @@ class ProjectConfig:
     figures_dir: str = "figures"
 
 
-def get_config(use_auto_dates: bool = False) -> ProjectConfig:
+def get_config(years: int = 10, use_fixed: bool = False) -> ProjectConfig:
     """Generate configuration based on selected date mode."""
-    if use_auto_dates:
-        # Dynamic period: current date minus 10 years
+    if not use_fixed:
+        # Dynamic period: current date minus N years
         end = datetime.now()
-        start = end - timedelta(days=365 * 10)
+        start = end - timedelta(days=365 * years)
         return ProjectConfig(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
     
     # Fixed period for strict reproducibility

@@ -32,7 +32,13 @@ st.sidebar.header("⚙️ Parameters")
 tickers_input = st.sidebar.text_input("Tickers (space separated)", "AAPL MSFT GOOGL JPM")
 benchmark_input = st.sidebar.text_input("Benchmark", "SPY")
 max_weight = st.sidebar.slider("Max Allocation per Asset", 0.05, 1.0, 0.40, 0.05)
-auto_dates = st.sidebar.checkbox("Use Dynamic Dates (Last 10 Years)", value=True)
+
+st.sidebar.markdown("---")
+use_fixed = st.sidebar.checkbox("Use Fixed Historical Period (2013-2022)", value=False)
+if not use_fixed:
+    years = st.sidebar.slider("Analysis Period (Years)", 1, 10, 5)
+else:
+    years = 10  # Placeholder, ignored if use_fixed is True
 
 if st.sidebar.button("Run Analysis", type="primary"):
     
@@ -52,7 +58,7 @@ if st.sidebar.button("Run Analysis", type="primary"):
     with st.spinner("Fetching market data and running optimization..."):
         try:
             # 1. Fetch & Preprocess
-            config = get_config(use_auto_dates=auto_dates)
+            config = get_config(years=years, use_fixed=use_fixed)
             fetch_tickers = list(set(tickers + [benchmark]))
             
             prices = download_prices(fetch_tickers, start=config.start_date, end=config.end_date)
@@ -90,6 +96,14 @@ if st.sidebar.button("Run Analysis", type="primary"):
                 st.subheader(f"Portfolio Performance vs Benchmark ({benchmark})")
                 st.caption(f"Analysis period: **{config.start_date}** to **{config.end_date}**")
                 
+                st.info("""
+                💡 **How to choose your portfolio:**
+                - 🛡️ **Min-Variance:** The safest possible combination. Choose this if you want minimal price swings.
+                - ⭐ **Max-Sharpe (Tangency):** The "sweet spot". It mathematically provides the most return for every unit of risk.
+                - ⚖️ **Equal-Weight (1/n):** A lazy split across all assets. Good for checking if complex math actually beats a simple strategy.
+                - 📈 **Benchmark:** The broader market. If your portfolio's Sharpe Ratio is lower than the benchmark, you might be better off buying the benchmark index instead!
+                """)
+                
                 # Comparison Dataframe
                 comp_data = {
                     "Portfolio": ["Min-Variance", "Max-Sharpe (Tangency)", "Equal-Weight (1/n)", f"Benchmark ({benchmark})"],
@@ -114,6 +128,7 @@ if st.sidebar.button("Run Analysis", type="primary"):
                 st.dataframe(df_comp, use_container_width=True)
                 
                 st.subheader("Asset Allocation (Weights)")
+                st.markdown("This tells you exactly what percentage of your money should go into each stock.")
                 weights_df = pd.DataFrame({
                     "Min-Variance": min_var_port.weights,
                     "Max-Sharpe": max_sharpe_port.weights,
@@ -129,6 +144,8 @@ if st.sidebar.button("Run Analysis", type="primary"):
             with tab2:
                 st.subheader("Efficient Frontier")
                 st.markdown("Visualizing the optimal risk-return trade-off. Any portfolio below the blue line is sub-optimal.")
+                st.info("💡 **Hint:** Look at the Red Diamond (Benchmark). If your Golden Star (Max-Sharpe) is higher and further to the left, your selected assets easily beat the market!")
+                
                 assets_df = pd.DataFrame({"Ticker": tickers, "Return": annual_returns.values, "Volatility": annual_volatility.values})
                 bench_stat = {"Ticker": benchmark, "Return": bench_ann_ret, "Volatility": bench_ann_vol}
                 
@@ -148,7 +165,8 @@ if st.sidebar.button("Run Analysis", type="primary"):
                 
                 with col1:
                     st.subheader("Correlation Matrix")
-                    st.markdown("Measures how assets move together. **Negative** numbers mean strong diversification.")
+                    st.markdown("Measures how assets move together.")
+                    st.info("💡 **Hint:** Values close to **-1.0** or **0.0** are great. It means when one asset drops, another stays flat or goes up (saving your portfolio). Values near **+1.0** mean they crash together.")
                     fig_corr = plot_correlation_matrix(corr_matrix, save=False)
                     st.pyplot(fig_corr)
                     plt.close(fig_corr)
@@ -164,6 +182,7 @@ if st.sidebar.button("Run Analysis", type="primary"):
                     
                     st.subheader("Value at Risk (95%)")
                     st.markdown("The maximum expected daily loss in the worst 5% of scenarios.")
+                    st.info("💡 **Hint:** If VaR is 2.50%, it means there's only a 5% chance your stock will drop more than 2.5% in a single day.")
                     var_data = {t: f"{calculate_value_at_risk(port_returns[t], 0.95):.2%}" for t in tickers}
                     st.dataframe(pd.Series(var_data, name="95% VaR"), use_container_width=True)
 
