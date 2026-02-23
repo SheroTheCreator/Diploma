@@ -84,7 +84,7 @@ def main() -> None:
 
     min_var_port = optimizer.min_variance_portfolio(constraints)
     max_sharpe_port = optimizer.max_sharpe_portfolio(config.risk_free_rate, constraints)
-    frontier = optimizer.efficient_frontier(n_points=20, constraints)
+    frontier = optimizer.efficient_frontier(n_points=20, constraints=constraints)
     eq_port = calculate_equal_weight_portfolio(len(args.tickers), annual_returns, annual_cov)
 
     # ========== DISPLAY RESULTS ==========
