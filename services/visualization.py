@@ -141,3 +141,40 @@ def plot_price_history(
         fig.savefig(out_path / filename, dpi=150, bbox_inches="tight")
         
     return fig
+
+
+def plot_cumulative_performance(
+    daily_returns_dict: dict[str, pd.Series],
+    output_dir: str = "figures",
+    filename: str = "cumulative_performance.png",
+    save: bool = True
+) -> plt.Figure:
+    """Plot cumulative performance of portfolios over time (Base 100)."""
+    _setup_plot(figsize=(12, 6))
+    fig, ax = plt.subplots()
+
+    df_returns = pd.DataFrame(daily_returns_dict)
+    
+    # Calculate cumulative wealth assuming an initial investment of 100
+    cumulative_wealth = (1 + df_returns).cumprod() * 100
+
+    for col in cumulative_wealth.columns:
+        linewidth = 2.5 if "Max-Sharpe" in col else 1.5
+        linestyle = "--" if "Benchmark" in col else "-"
+        ax.plot(cumulative_wealth.index, cumulative_wealth[col], label=col,
+                linewidth=linewidth, linestyle=linestyle)
+
+    ax.set_xlabel("Date", fontweight="bold")
+    ax.set_ylabel("Cumulative Wealth (Base 100)", fontweight="bold")
+    ax.set_title("Historical Cumulative Performance Comparison", fontsize=14, fontweight="bold", pad=15)
+    ax.legend(loc="upper left")
+    ax.grid(True, alpha=0.3)
+    plt.xticks(rotation=45)
+
+    plt.tight_layout()
+    if save:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path / filename, dpi=150, bbox_inches="tight")
+        
+    return fig
