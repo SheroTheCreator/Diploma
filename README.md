@@ -20,6 +20,92 @@ An empirical implementation of the **Markowitz Mean-Variance framework** for por
 
 ---
 
+## 📖 User Guide
+
+New to the tool? Follow these steps to build and analyze your first portfolio in minutes.
+
+### Step 1 — Enter Your Tickers
+
+In the left sidebar, type the **stock ticker symbols** you want to include in your portfolio (e.g. `AAPL`, `MSFT`, `BTC-USD`, `GLD`).
+
+- Use Yahoo Finance ticker format (same as on [finance.yahoo.com](https://finance.yahoo.com))
+- You can mix **stocks, ETFs, and crypto** (e.g. `BTC-USD`, `ETH-USD`)
+- Minimum **2 assets** are required; 4–8 assets give the most meaningful results
+
+> 💡 **Tip:** Not sure which tickers to use? Try a classic mix: `AAPL MSFT GLD BND SPY`
+
+---
+
+### Step 2 — Set the Date Range
+
+Choose the **start and end dates** for historical data.
+
+- A longer period (5–10 years) gives more statistically robust results
+- The tool requires at least **1 year** of data to compute a meaningful Efficient Frontier
+- Data is automatically fetched from **Yahoo Finance**
+
+---
+
+### Step 3 — Configure Constraints
+
+Adjust the optional settings in the sidebar:
+
+| Setting | Description | Default |
+|---|---|---|
+| **Risk-Free Rate** | Annual rate used for Sharpe Ratio calculation (e.g. 0.04 = 4%) | 0.04 |
+| **Max Weight per Asset** | Prevents over-concentration in one asset (e.g. 0.4 = max 40%) | 1.0 (no limit) |
+| **Benchmark Ticker** | Index to compare against (e.g. `^GSPC` for S&P 500) | `^GSPC` |
+
+---
+
+### Step 4 — Run the Analysis
+
+Click the **"Optimize Portfolio"** button. The tool will:
+
+1. 📥 Download historical price data
+2. 🧹 Clean and preprocess the data (handle missing values)
+3. 📊 Compute returns, volatility, and correlations
+4. ⚙️ Run the Markowitz optimization (SLSQP solver)
+5. 📈 Display the results
+
+---
+
+### Step 5 — Interpret the Results
+
+After optimization, you will see three sections:
+
+**📌 Optimal Portfolios Table**
+Shows the asset weights (%) for both the **Minimum-Variance** and **Maximum-Sharpe** portfolios side by side.
+
+**📈 Efficient Frontier Chart**
+A scatter plot of risk (volatility) vs. expected return. Each dot is a portfolio combination:
+- 🔵 **Blue dot** = Minimum-Variance Portfolio (lowest possible risk)
+- 🔴 **Red dot** = Maximum-Sharpe Portfolio (best risk-adjusted return)
+- ⭐ **Star** = Your benchmark (e.g. S&P 500)
+
+> The curve shows the **Pareto-optimal** boundary — any portfolio below the curve is suboptimal.
+
+**🔥 Correlation Heatmap**
+Shows how your assets move relative to each other. Values close to **-1** indicate good diversification potential; values close to **+1** mean the assets tend to move together.
+
+---
+
+### ❓ Frequently Asked Questions
+
+**Q: The app shows an error for my ticker.**
+Make sure the ticker exists on Yahoo Finance. Some assets may have limited history — try a more recent start date.
+
+**Q: The Efficient Frontier looks flat or strange.**
+This usually happens with fewer than 3 assets, or when all assets are highly correlated. Try adding uncorrelated assets like bonds (`BND`) or gold (`GLD`).
+
+**Q: What does a Sharpe Ratio of 0.6 mean?**
+It means you earn 0.6 units of excess return per unit of risk. Generally: below 0.5 is weak, 0.5–1.0 is acceptable, above 1.0 is strong.
+
+**Q: Can I use this for real investment decisions?**
+This tool is for **educational and research purposes only**. Past performance does not guarantee future results. Always consult a financial advisor before investing.
+
+---
+
 ## 📊 Key Results (Empirical Study 2013–2022)
 
 The algorithm was validated on a 5-asset, 10-year dataset across different asset classes:
