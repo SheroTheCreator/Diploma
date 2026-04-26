@@ -12,7 +12,7 @@ def clean_prices(prices: pd.DataFrame) -> pd.DataFrame:
     then backward-fill, then drops remaining invalid rows.
     """
     cleaned = prices.copy()
-    cleaned = cleaned.fillna(method="ffill").fillna(method="bfill")
+    cleaned = cleaned.ffill().bfill()
     return cleaned.dropna(how="all").sort_index()
 
 
