@@ -36,14 +36,31 @@ class MeanVarianceOptimizer:
         """Calculate portfolio expected return and volatility."""
         port_return = float(np.dot(weights, self.expected_returns.values))
         port_var = float(weights.T @ self.cov_matrix.values @ weights)
-        return port_return, float(np.sqrt(port_var))
+        return port_return, float(np.sqrt(max(port_var, 0.0)))
 
     def _get_bounds(self, constraints: WeightConstraints) -> tuple:
         """Create bounds tuple for scipy.optimize."""
         return tuple((constraints.min_weight, constraints.max_weight) for _ in range(self.n_assets))
 
+    def _validate_constraints(self, constraints: WeightConstraints) -> None:
+        """Check that weight bounds are feasible given the number of assets."""
+        n = self.n_assets
+        if constraints.min_weight * n > 1.0 + 1e-9:
+            raise ValueError(
+                f"min_weight={constraints.min_weight} is incompatible: "
+                f"minimum possible sum = {constraints.min_weight * n:.4f} > 1.0 "
+                f"for {n} assets."
+            )
+        if constraints.max_weight * n < 1.0 - 1e-9:
+            raise ValueError(
+                f"max_weight={constraints.max_weight} is incompatible: "
+                f"maximum possible sum = {constraints.max_weight * n:.4f} < 1.0 "
+                f"for {n} assets."
+            )
+
     def min_variance_portfolio(self, constraints: WeightConstraints) -> PortfolioResult:
         """Compute global minimum-variance portfolio."""
+        self._validate_constraints(constraints)
         initial_weights = np.ones(self.n_assets) / self.n_assets
         cov = self.cov_matrix.values
 
@@ -53,6 +70,8 @@ class MeanVarianceOptimizer:
             method="SLSQP",
             bounds=self._get_bounds(constraints),
             constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}],
+            tol=1e-10,
+            options={"maxiter": 1000, "ftol": 1e-12},
         )
 
         if not res.success:
@@ -63,13 +82,14 @@ class MeanVarianceOptimizer:
 
     def max_sharpe_portfolio(self, risk_free_rate: float, constraints: WeightConstraints) -> PortfolioResult:
         """Compute maximum Sharpe ratio portfolio (tangency portfolio)."""
+        self._validate_constraints(constraints)
         initial_weights = np.ones(self.n_assets) / self.n_assets
         mu = self.expected_returns.values
         cov = self.cov_matrix.values
 
         def negative_sharpe(w: np.ndarray) -> float:
             p_ret = float(np.dot(w, mu))
-            p_vol = float(np.sqrt(w.T @ cov @ w))
+            p_vol = float(np.sqrt(max(w.T @ cov @ w, 0.0)))
             return 1e6 if p_vol == 0.0 else -((p_ret - risk_free_rate) / p_vol)
 
         res = minimize(
@@ -78,6 +98,8 @@ class MeanVarianceOptimizer:
             method="SLSQP",
             bounds=self._get_bounds(constraints),
             constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}],
+            tol=1e-10,
+            options={"maxiter": 1000, "ftol": 1e-12},
         )
 
         if not res.success:
@@ -88,9 +110,10 @@ class MeanVarianceOptimizer:
 
     def efficient_frontier(self, n_points: int, constraints: WeightConstraints) -> list[PortfolioResult]:
         """Generate a set of optimal portfolios along the efficient frontier."""
+        self._validate_constraints(constraints)
         min_var = self.min_variance_portfolio(constraints)
         target_returns = np.linspace(min_var.expected_return, self.expected_returns.max(), n_points)
-        
+
         frontier = []
         mu = self.expected_returns.values
         cov = self.cov_matrix.values
@@ -104,10 +127,12 @@ class MeanVarianceOptimizer:
                 bounds=bounds,
                 constraints=[
                     {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-                    {"type": "eq", "fun": lambda w, t=target: float(np.dot(w, mu) - t)}
+                    {"type": "eq", "fun": lambda w, t=target: float(np.dot(w, mu) - t)},
                 ],
+                tol=1e-10,
+                options={"maxiter": 1000, "ftol": 1e-12},
             )
-            
+
             if res.success:
                 ret, vol = self._portfolio_performance(res.x)
                 frontier.append(PortfolioResult(weights=res.x, expected_return=ret, volatility=vol))
