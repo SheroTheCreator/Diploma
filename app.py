@@ -60,16 +60,39 @@ if st.sidebar.button("Execute Analysis", type="primary"):
         
     with st.spinner("Fetching market data and executing optimization algorithms..."):
         try:
-            # 1. Fetch & Preprocess
             config = get_config(years=years, use_fixed=use_fixed)
-            fetch_tickers = list(set(tickers + [benchmark]))
-            
-            prices = download_prices(fetch_tickers, start=config.start_date, end=config.end_date)
-            prices = clean_prices(prices)
-            returns = compute_simple_returns(prices)
 
-            port_returns = returns[tickers]
-            bench_returns = returns[benchmark]
+            # 1. Fetch portfolio tickers and benchmark SEPARATELY
+            # This prevents benchmark NaN from dropping portfolio columns and vice versa
+            prices_port = download_prices(tickers, start=config.start_date, end=config.end_date)
+            prices_bench = download_prices([benchmark], start=config.start_date, end=config.end_date)
+
+            prices_port = clean_prices(prices_port)
+            prices_bench = clean_prices(prices_bench)
+
+            returns_port = compute_simple_returns(prices_port)
+            returns_bench = compute_simple_returns(prices_bench)
+
+            # Align on common dates
+            common_idx = returns_port.index.intersection(returns_bench.index)
+            returns_port = returns_port.loc[common_idx]
+            returns_bench = returns_bench.loc[common_idx]
+
+            # Validate that all requested tickers survived cleaning
+            missing = [t for t in tickers if t not in returns_port.columns]
+            if missing:
+                st.error(f"No valid data for tickers: {', '.join(missing)}. Please check the symbols and try again.")
+                st.stop()
+
+            if benchmark not in returns_bench.columns:
+                st.error(f"No valid data for benchmark: {benchmark}. Please check the symbol and try again.")
+                st.stop()
+
+            port_returns = returns_port[tickers]
+            bench_returns = returns_bench[benchmark]
+
+            # Prices for price history chart (portfolio only)
+            prices = prices_port
 
             # 2. Descriptive Statistics
             annual_returns = calculate_annualized_return(port_returns, config.periods_per_year)
